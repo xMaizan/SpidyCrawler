@@ -1,16 +1,21 @@
-# SpidyCrawler – SEO / traffic bot
-# Runs automatically every 6 hours, and can also be run manually:
-#   Actions → SEO Bot Launcher → Run workflow
-# Does NOT run on push.
+# SpidyCrawler (AUTO)
+# Runs every 6 hours + manual trigger
+# Stop anytime by disabling the workflow in GitHub Actions:
+#   Actions → SpidyCrawler (AUTO) → "..." menu → Disable workflow
 
-name: SEO Bot Launcher
+name: SpidyCrawler
 
 on:
-  workflow_dispatch: # Manual run from the Actions tab
+  workflow_dispatch:   # Manual run (optional)
   schedule:
     # Every 6 hours: 00:00, 06:00, 12:00, 18:00 UTC
     # (GitHub cron is always UTC)
     - cron: "0 */6 * * *"
+
+# Prevent two runs from overlapping if one takes a long time.
+concurrency:
+  group: spidycrawler-auto
+  cancel-in-progress: false
 
 jobs:
   run-seo-bot:
@@ -46,12 +51,12 @@ jobs:
           if (!(Test-Path "$root/source/requirements.txt")) { throw "source/requirements.txt not found" }
           if (!(Test-Path "$root/source/SC_BOT.py")) { throw "source/SC_BOT.py not found" }
           New-Item -ItemType Directory -Force -Path "$root/Customize" | Out-Null
-          if (!(Test-Path "$root/Customize/urls.txt")) { Set-Content -Path "$root/Customize/urls.txt" -Value "https://example.com/" }
+          if (!(Test-Path "$root/Customize/urls.txt"))       { Set-Content -Path "$root/Customize/urls.txt"       -Value "https://example.com/" }
           if (!(Test-Path "$root/Customize/spend_time.txt")) { Set-Content -Path "$root/Customize/spend_time.txt" -Value "60" }
-          if (!(Test-Path "$root/Customize/bot_count.txt")) { Set-Content -Path "$root/Customize/bot_count.txt" -Value "1" }
+          if (!(Test-Path "$root/Customize/bot_count.txt"))  { Set-Content -Path "$root/Customize/bot_count.txt"  -Value "1" }
           Write-Host "Project structure OK."
 
-      - name: Install dependencies (run.py does this too; pre-install for faster run)
+      - name: Install dependencies
         shell: pwsh
         run: |
           python -m pip install --upgrade pip --quiet
@@ -69,10 +74,7 @@ jobs:
           Write-Host "Bots:"
           Get-Content Customize/bot_count.txt
 
-      # NOTE: the old "Install devtunnel-cli" step was removed — it referenced
-      # @maiz-an/devtunnel-cli@3.1.2, which doesn't exist on npm (404).
-
-      - name: Run SpidyCrawler (run.py = auto setup + bots)
+      - name: Run SpidyCrawler (AUTO SEO)
         shell: pwsh
         env:
           PYTHONUTF8: 1
